@@ -8,10 +8,6 @@ airborne = cv2.imread("airborne.jpg",0)
 
 #print airborne
 
-print airborne[12,200]
-#cv2.imshow('airborne',airborne)
-#cv2.waitKey(0)
-
 histogramFrequencyValues = [0]*256 
 frequencyOfIntensity = [0]*256
 cumulativeFrequencyOfIntensity = [0]*256
@@ -22,7 +18,6 @@ def histogramFrequency(imageMatrix): 		# this function calculates frequency of e
 
 	for i in range(imageMatrix.shape[0]):
 		for j in range(imageMatrix.shape[1]):
-		#	if(imageMatrix[i][j] == intensity):
 			frequencyOfIntensity[imageMatrix[i][j]] = frequencyOfIntensity[imageMatrix[i][j]] + 1
 			
 	return frequencyOfIntensity
@@ -36,12 +31,12 @@ def imageMatrixToList(imageMatrix): 		# this function converts the 2D matrix int
 #print imageMatrixToList(airborne)			
 
 histogramFrequencyValues = histogramFrequency(airborne)
-
+#print "histogramFrequencyValues[192] ",histogramFrequencyValues[192]
 #print histogramFrequencyValues
 
-def cummulativeFrequency(histFrequency):
-	cumulativeFrequency = [0]*256
-	for i in range(256):
+def cummulativeFrequency(histFrequency):	#calculates the cumulative frequency of each intensity value and returns a list
+	cumulativeFrequency = [0]*256		#with cumulative frequency populated corresponding to each index representing
+	for i in range(256):			#intensity value
 		if(i==0):
 			cumulativeFrequency[i] =  histFrequency[i]
 		else:
@@ -49,40 +44,57 @@ def cummulativeFrequency(histFrequency):
 
 	return cumulativeFrequency
 
-print "******Cummulative frequency*******"
+#print "******Cummulative frequency*******"
+
 cumulativeFrequencyOfIntensity =  cummulativeFrequency(histogramFrequencyValues)	
 
-print cumulativeFrequencyOfIntensity
+#print cumulativeFrequencyOfIntensity
 
-plt.hist(imageMatrixToList(airborne),bins = 256)
+plt.hist(imageMatrixToList(airborne),bins = 256) # to plot histogram
 plt.title("Image histogram")
 plt.xlabel("Value")
 plt.ylabel("Frequency")
-#plt.show()
+plt.show()
 
-equilizedImage = np.zeros([airborne.shape[0],airborne.shape[1]])
+#equilizedImage = np.zeros([airborne.shape[0],airborne.shape[1]])
+equilizedImage = [[0 for x in xrange(960)] for x in xrange(720)]
+
 #equilizedImage = np.matrix(equilizedImageArray)
 #print equilizedImage
 def histEquilization(img):
-	print "cumulativeFrequencyOfIntensity[img[0][0]] ", cumulativeFrequencyOfIntensity[img[0][0]]
-	print "img.shape[0] * img.shape[1] ", img.shape[0] * img.shape[1]
-	
 	for i in range(img.shape[0]):
 		for j in range(img.shape[1]):
-			equilizedImage[i][j] = (256*cumulativeFrequencyOfIntensity[img[i][j]])/(img.shape[0] * img.shape[1])
-
-#			print equilizedImage.shape
-#			print i,j	
+			equilizedImage[i][j] = (255*cumulativeFrequencyOfIntensity[img[i][j]])/(img.shape[0] * img.shape[1])
+			
 	return equilizedImage
 
 equilizedImage = histEquilization(airborne)
-print equilizedImage
-
-
-cv2.imshow('Airborne Equilized',equilizedImage)
+finalEqualizedImage = np.array(equilizedImage) # converting equalized 2D array into numpy array so that image can be saved
+cv2.imwrite('FinalEqualizedImage.jpg',finalEqualizedImage)
+cv2.imshow('Airborne Equilized',finalEqualizedImage)
 cv2.waitKey(0)
 
-#print "Count of pixels with intensity x:",searchIntensityValues(airborne,129)	
+
+
+#finalEquilizedImage = np.zeros([airborne.shape[0],airborne.shape[1]])
+
+#print "before applyin image  finalEquilizedImage [400][450] ", finalEquilizedImage[400][450]
+#for i in range(equilizedImage.shape[0]):
+#	for j in range(equilizedImage.shape[1]):
+#		finalEquilizedImage[i][j] = int(equilizedImage[i][j])
+
+#print "original image[400][450] ",airborne[400][450]
+#print "FINAL equilizedImage[400][450] ",(finalEquilizedImage[400][450])
+
+		
+#print "original image[400][450] ",airborne[400][450]
+#print "equilizedImage[400][450] ",(equilizedImage[400][450])
+
+#print "original image[0][0] ",airborne[0][0]
+#print "equilizedImage[0][0] ",(equilizedImage[0][0])
+
+#print "original image[0][0] ",airborne[0][0]
+#print "x[400][450] ",(x[400][450])
 
 #print len(frequencyOfIntensity)
 
