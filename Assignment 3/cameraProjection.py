@@ -68,8 +68,20 @@ print "Point after rotation1 - FRAME4 : ", camFrame4Quat
 
 def quaternionToRotation(quat):
 	rotationMatrix = np.zero([3,3])
-	
-	
+	rotationMatrix[0][0] = quat[0]**2 + quat[1]**2 - quat[2]**2 - quat[3]**2 	
+	rotationMatrix[0][1] = 2(quat[1]*quat[2] - quat[0]*quat[3])
+	rotationMatrix[0][2] = 2(quat[1]*quat[3] + quat[0]*quat[2])
+	rotationMatrix[1][0] = 2(quat[1]*quat[2] + quat[0]*quat[3])
+	rotationMatrix[1][1] = quat[0]**2 - quat[1]**2 + quat[2]**2 - quat[3]**2
+	rotationMatrix[1][2] = 2(quat[2]*quat[3] - quat[0]*quat[1])
+	rotationMatrix[2][0] = 2(quat[1]*quat[3] - quat[0]*quat[2]) 
+	rotationMatrix[2][1] = 2(quat[2]*quat[3] + quat[0]*quat[1])
+	rotationMatrix[2][2] = quat[0]**2 - quat[1]**2 + quat[3]**2 - quat[2]**2
+
+	return np.matrix(rotationMatrix)
+
+
+
 
 
 
