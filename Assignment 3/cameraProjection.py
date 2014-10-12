@@ -1,8 +1,22 @@
 import numpy as np
 import cv2
 import math
+import matplotlib.pyplot as plt
+from matplotlib import collections as mc
+import pylab as pl
+
+
 pts =  np.zeros([11,3])
 #print pts 
+
+u_o = 0
+v_o = 0
+beta_u = 1
+beta_v = 1
+k_u = 1
+k_v = 1
+focal_length =1
+
 
 pts[0, :] = [-1, -1, -1]
 pts[1, :] = [1, -1, -1]
@@ -18,8 +32,8 @@ pts[10,:] = [0, 0.5, -1]
 
 print pts
 
-quat1 = [0.0,1.0,-1.0,2.0]
-quat2 = [0.0,-1.0,-0.5,0.5]
+#quat1 = [0.0,1.0,-1.0,2.0]
+#quat2 = [0.0,-1.0,-0.5,0.5]
 
 #function to mulitple two quaternions.
 def quaternionMultiplication(quat1,quat2):
@@ -48,10 +62,10 @@ def rotatePointAlongYaxis(pointQuat,theta):
 	rotationQuat =  [math.cos((math.radians(theta))/2), 0, math.sin((math.radians(theta))/2),0]
 	
 	rotatedPointQuat = quaternionMultiplication(quaternionMultiplication(rotationQuat,pointQuat),quaternionConjugate(rotationQuat))
-	print "Input quaternion : ",pointQuat
-	print "Angle : ",theta
-	print "(math.radians(theta))/2 ",(math.radians(theta))/2
-	print "quaternionConjugate(rotationQuat) : ",quaternionConjugate(rotationQuat)
+#	print "Input quaternion : ",pointQuat
+#	print "Angle : ",theta
+#	print "(math.radians(theta))/2 ",(math.radians(theta))/2
+#	print "quaternionConjugate(rotationQuat) : ",quaternionConjugate(rotationQuat)
 	return rotatedPointQuat
 
 camFrame2Quat = [0,0,0,0]
@@ -66,28 +80,246 @@ print "Point after rotation1 - FRAME2 : ", camFrame2Quat
 print "Point after rotation1 - FRAME3 : ", camFrame3Quat
 print "Point after rotation1 - FRAME4 : ", camFrame4Quat
 
+camFrameQuaternions = [camFrame1Quat,camFrame2Quat,camFrame3Quat,camFrame4Quat]
+
 def quaternionToRotation(quat):
-	rotationMatrix = np.zero([3,3])
+	rotationMatrix = np.zeros([3,3])
 	rotationMatrix[0][0] = quat[0]**2 + quat[1]**2 - quat[2]**2 - quat[3]**2 	
-	rotationMatrix[0][1] = 2(quat[1]*quat[2] - quat[0]*quat[3])
-	rotationMatrix[0][2] = 2(quat[1]*quat[3] + quat[0]*quat[2])
-	rotationMatrix[1][0] = 2(quat[1]*quat[2] + quat[0]*quat[3])
+	rotationMatrix[0][1] = 2*(quat[1]*quat[2] - quat[0]*quat[3])
+	rotationMatrix[0][2] = 2*(quat[1]*quat[3] + quat[0]*quat[2])
+	rotationMatrix[1][0] = 2*(quat[1]*quat[2] + quat[0]*quat[3])
 	rotationMatrix[1][1] = quat[0]**2 - quat[1]**2 + quat[2]**2 - quat[3]**2
-	rotationMatrix[1][2] = 2(quat[2]*quat[3] - quat[0]*quat[1])
-	rotationMatrix[2][0] = 2(quat[1]*quat[3] - quat[0]*quat[2]) 
-	rotationMatrix[2][1] = 2(quat[2]*quat[3] + quat[0]*quat[1])
+	rotationMatrix[1][2] = 2*(quat[2]*quat[3] - quat[0]*quat[1])
+	rotationMatrix[2][0] = 2*(quat[1]*quat[3] - quat[0]*quat[2]) 
+	rotationMatrix[2][1] = 2*(quat[2]*quat[3] + quat[0]*quat[1])
 	rotationMatrix[2][2] = quat[0]**2 - quat[1]**2 + quat[3]**2 - quat[2]**2
 
 	return np.matrix(rotationMatrix)
 
 
+quatIdentity = [0,1,1,1]
+rotationQuat1 = [0,1,1,1]
+rotation1_matrix = np.zeros([3,3])
+rotation1_matrix = quaternionToRotation(rotationQuat1)
+print "\nrotation matrix 1 :",rotation1_matrix
+rotationQuat2 = [math.cos((math.radians(30))/2), 0, math.sin((math.radians(30))/2),0]
+rotation2_matrix = np.zeros([3,3])
+rotation2_matrix = quaternionToRotation(rotationQuat2)
+print "\nrotation matrix 2 :",rotation2_matrix
+
+ 
+rotationQuat3 = [math.cos((math.radians(60))/2), 0, math.sin((math.radians(60))/2),0]
+rotation3_matrix = np.zeros([3,3])
+rotation3_matrix = quaternionToRotation(rotationQuat3)
+print "\nrotation matrix 1 :",rotation3_matrix
+
+
+rotationQuat4 = [math.cos((math.radians(90))/2), 0, math.sin((math.radians(90))/2),0]
+rotation4_matrix = np.zeros([3,3])
+rotation4_matrix = quaternionToRotation(rotationQuat4)
+print "\nrotation matrix 1 :",rotation4_matrix
+
+ 
+rotationMatrices = [rotation1_matrix,rotation2_matrix,rotation3_matrix,rotation4_matrix]
+
+
+### PERSPECTIVE PROJECTION ####
+	
+def pointPerspectiveProjection(point,cameraQuat,rotationMatrix):
+	global focal_length
+	global beta_u
+        global beta_v
+	global u_o
+	global v_o
+	
+	
+	Sp = np.zeros([3,1])		#this will hold point to be projected
+	Sp[0][0] = point[0]		#Converting point quaternion into a 3x1 matrix as per formula
+	Sp[1][0] = point[1]
+	Sp[2][0] = point[2]
+	
+#	print "cameraQuat [1] = ",cameraQuat	
+	Tf = np.zeros([3,1])		#this will hold the points for current frame of camera
+	Tf[0][0] = cameraQuat[1]
+	Tf[1][0] = cameraQuat[2]
+	Tf[2][0] = cameraQuat[3]
+
+	Sp_minus_Tf = Sp - Tf
+	
+#	orientationMatrixForCamera  = quaternionToRotation(cameraQuat)
+#	print "\norientationMatrixForCamera[0][0] : ",orientationMatrixForCamera[0,0]
+		
+	If = np.zeros([3,1])		#this will hold camera's horizontal axis
+#	print "\nIf[0][0] : ",If[0][0]
+	
+	If[0][0] = rotationMatrix[0,0]
+	If[1][0] = rotationMatrix[0,1]
+	If[2][0] = rotationMatrix[0,2]
+	
+	Jf = np.zeros([3,1])           #this will hold camera's horizontal axis
+        Jf[0][0] = rotationMatrix[1,0]
+        Jf[1][0] = rotationMatrix[1,1]
+        Jf[2][0] = rotationMatrix[1,2]
+
+	Kf = np.zeros([3,1])           #this will hold camera's horizontal axis
+        Kf[0][0] = rotationMatrix[2,0]
+        Kf[1][0] = rotationMatrix[2,1]
+        Kf[2][0] = rotationMatrix[2,2]
+	
+	
+	U_matrixForm = (focal_length*beta_u*np.dot((Sp_minus_Tf).transpose(),If))/np.dot((Sp_minus_Tf).transpose(),Kf)
+	Ufp = U_matrixForm[0][0]
+	Ufp = Ufp + u_o
+	
+
+	V_matrixForm = (focal_length*beta_v*np.dot((Sp_minus_Tf).transpose(),Jf))/np.dot((Sp_minus_Tf).transpose(),Kf)
+	Vfp = V_matrixForm[0][0]
+        Vfp = Vfp + v_o
+
+
+	return Ufp,Vfp
+
+
+#print "Projection of first point : ",pointProjection(pts[0],camFrame1Quat)
 
 
 
+#### ORTHOGRAPHIC PROJECTION ####
+
+#function to give orthographic projection for a set of 3D points
+def pointOrthographicProjection(point,cameraQuat,rotationMatrix):
+	global focal_length
+        global beta_u
+        global beta_v
+        global u_o
+        global v_o
+
+
+        Sp = np.zeros([3,1])            #this will hold point to be projected
+        Sp[0][0] = point[0]             #Converting point quaternion into a 3x1 matrix as per formula
+        Sp[1][0] = point[1]
+        Sp[2][0] = point[2]
+
+        #print "cameraQuat [1] = ",cameraQuat
+        Tf = np.zeros([3,1])            #this will hold the points for current frame of camera
+        Tf[0][0] = cameraQuat[1]
+        Tf[1][0] = cameraQuat[2]
+        Tf[2][0] = cameraQuat[3]
+
+        Sp_minus_Tf = Sp - Tf
+
+#       orientationMatrixForCamera  = quaternionToRotation(cameraQuat)
+#       print "\norientationMatrixForCamera[0][0] : ",orientationMatrixForCamera[0,0]
+
+        If = np.zeros([3,1])            #this will hold camera's horizontal axis
+       # print "\nIf[0][0] : ",If[0][0]
+
+        If[0][0] = rotationMatrix[0,0]
+	If[1][0] = rotationMatrix[0,1]
+        If[2][0] = rotationMatrix[0,2]
+
+        Jf = np.zeros([3,1])           #this will hold camera's horizontal axis
+        Jf[0][0] = rotationMatrix[1,0]
+        Jf[1][0] = rotationMatrix[1,1]
+        Jf[2][0] = rotationMatrix[1,2]
+
+        Kf = np.zeros([3,1])           #this will hold camera's horizontal axis
+        Kf[0][0] = rotationMatrix[2,0]
+        Kf[1][0] = rotationMatrix[2,1]
+        Kf[2][0] = rotationMatrix[2,2]
+
+
+        U_matrixForm = (focal_length*beta_u*np.dot((Sp_minus_Tf).transpose(),If))
+        Ufp = U_matrixForm[0][0]
+        Ufp = Ufp + u_o
+
+
+        V_matrixForm = (focal_length*beta_v*np.dot((Sp_minus_Tf).transpose(),Jf))/np.dot((Sp_minus_Tf).transpose(),Kf)
+        Vfp = V_matrixForm[0][0]
+        Vfp = Vfp + v_o
+
+
+        return Ufp,Vfp
+
+projectedModel = []
+
+#function to get projection of all 11 points
+def getProjectionForAllPoints(pts,cameraFrameQuat,rotationMatrices):
+	global projectedModel
+        projectedPointsF1 = np.zeros([11,2])
+        projectedPointsF2 = np.zeros([11,2])
+        projectedPointsF3 = np.zeros([11,2])
+        projectedPointsF4 = np.zeros([11,2])
+        projectedPointsF1Ortho = np.zeros([11,2])
+        projectedPointsF2Ortho = np.zeros([11,2])
+        projectedPointsF3Ortho = np.zeros([11,2])
+        projectedPointsF4Ortho = np.zeros([11,2])
+
+        for i in range(11):
+               projectedPointsF1[i][0],projectedPointsF1[i][1] = pointPerspectiveProjection(pts[i],cameraFrameQuat[0],rotationMatrices[0])
+	       projectedPointsF2[i][0],projectedPointsF2[i][1] = pointPerspectiveProjection(pts[i],cameraFrameQuat[1],rotationMatrices[1])
+               projectedPointsF3[i][0],projectedPointsF3[i][1] = pointPerspectiveProjection(pts[i],cameraFrameQuat[2],rotationMatrices[2])
+               projectedPointsF4[i][0],projectedPointsF4[i][1] = pointPerspectiveProjection(pts[i],cameraFrameQuat[3],rotationMatrices[3])
+               projectedPointsF1Ortho[i][0],projectedPointsF1Ortho[i][1] = pointOrthographicProjection(pts[i],cameraFrameQuat[0],rotationMatrices[0])
+               projectedPointsF2Ortho[i][0],projectedPointsF2Ortho[i][1] = pointOrthographicProjection(pts[i],cameraFrameQuat[1],rotationMatrices[1])
+               projectedPointsF3Ortho[i][0],projectedPointsF3Ortho[i][1] = pointOrthographicProjection(pts[i],cameraFrameQuat[2],rotationMatrices[2])
+               projectedPointsF4Ortho[i][0],projectedPointsF4Ortho[i][1] = pointOrthographicProjection(pts[i],cameraFrameQuat[3],rotationMatrices[3])
 
 
 	
+	projectedModel = [projectedPointsF1,projectedPointsF2,projectedPointsF3,projectedPointsF4,projectedPointsF1Ortho,projectedPointsF2Ortho,projectedPointsF3Ortho,projectedPointsF4Ortho]
+	return projectedModel
+
+print "Projections of all points w.r.t. fram1 : ",getProjectionForAllPoints(pts,camFrameQuaternions,rotationMatrices)
+print "\nProjected Model [0] : ",projectedModel[0][0][0]
+
+def plotSamplePoints(listxy,figName):
+	x1 = []
+	y1 = []
+	x2 = []
+	y2 = []
+	x3 = []
+	y3 = []
+	x4 = []
+	y4 = []
 	
+	for i in range(len(listxy[0])):
+		x1.append(listxy[0][i][0])
+	        y1.append(listxy[0][i][1])	
+	
+	plt.subplot(2,2,1)
+	plt.scatter(x1,y1)
+	plt.title('Frame 1')
 
+#	plt.plot(x1,y1)
 
+	for i in range(len(listxy[1])):
+                x2.append(listxy[1][i][0])
+                y2.append(listxy[1][i][1])    
+	plt.subplot(2,2,2)
+        plt.scatter(x2,y2)
+	plt.title('Frame 2')
+#	plt.plot(x2,y2)
 
+	for i in range(len(listxy[2])):
+                x3.append(listxy[2][i][0])
+                y3.append(listxy[2][i][1])
+        plt.subplot(2,2,3)
+        plt.scatter(x3,y3)
+	plt.title('Frame 3')
+
+	for i in range(len(listxy[3])):
+                x4.append(listxy[3][i][0])
+                y4.append(listxy[3][i][1])
+        plt.subplot(2,2,4)
+        plt.scatter(x4,y4)
+	plt.title('Frame 4')
+	name = figName + '.jpg'
+	plt.savefig(name)                                                         
+	
+	
+projectedModelPerspective = [projectedModel[0],projectedModel[1],projectedModel[2],projectedModel[3]]
+projectedModelOrthogonal = [projectedModel[4],projectedModel[5],projectedModel[6],projectedModel[7]]
+print "\nprojectedModelPerspective[0]",projectedModelOrthogonal[0]
+plotSamplePoints(projectedModelPerspective,'Perspective')
+plotSamplePoints(projectedModelOrthogonal,'Orthogonal')
