@@ -71,9 +71,9 @@ def rotatePointAlongYaxis(pointQuat,theta):
 camFrame2Quat = [0,0,0,0]
 camFrame3Quat = [0,0,0,0]
 camFrame4Quat = [0,0,0,0]
-camFrame2Quat = rotatePointAlongYaxis(camFrame1Quat,30)
-camFrame3Quat = rotatePointAlongYaxis(camFrame2Quat,30)
-camFrame4Quat = rotatePointAlongYaxis(camFrame3Quat,30)
+camFrame2Quat = rotatePointAlongYaxis(camFrame1Quat,-30)
+camFrame3Quat = rotatePointAlongYaxis(camFrame2Quat,-30)
+camFrame4Quat = rotatePointAlongYaxis(camFrame3Quat,-30)
 
 print "FRAME1 : ", camFrame1Quat
 print "Point after rotation1 - FRAME2 : ", camFrame2Quat
@@ -99,25 +99,25 @@ def quaternionToRotation(quat):
 
 quatIdentity = [0,1,1,1]
 rotationQuat1 = [0,1,1,1]
-rotation1_matrix = np.zeros([3,3])
-rotation1_matrix = quaternionToRotation(rotationQuat1)
-print "\nrotation matrix 1 :",rotation1_matrix
+rotation1_matrix = np.identity(3)
+#rotation1_matrix = quaternionToRotation(rotationQuat1)
+print "\nrotation matrix 1 :\n",rotation1_matrix
 rotationQuat2 = [math.cos((math.radians(30))/2), 0, math.sin((math.radians(30))/2),0]
 rotation2_matrix = np.zeros([3,3])
 rotation2_matrix = quaternionToRotation(rotationQuat2)
-print "\nrotation matrix 2 :",rotation2_matrix
+print "\nrotation matrix 2 :\n",rotation2_matrix
 
  
 rotationQuat3 = [math.cos((math.radians(60))/2), 0, math.sin((math.radians(60))/2),0]
 rotation3_matrix = np.zeros([3,3])
 rotation3_matrix = quaternionToRotation(rotationQuat3)
-print "\nrotation matrix 1 :",rotation3_matrix
+print "\nrotation matrix 3 :\n",rotation3_matrix
 
 
 rotationQuat4 = [math.cos((math.radians(90))/2), 0, math.sin((math.radians(90))/2),0]
 rotation4_matrix = np.zeros([3,3])
 rotation4_matrix = quaternionToRotation(rotationQuat4)
-print "\nrotation matrix 1 :",rotation4_matrix
+print "\nrotation matrix 4 :\n",rotation4_matrix
 
  
 rotationMatrices = [rotation1_matrix,rotation2_matrix,rotation3_matrix,rotation4_matrix]
@@ -166,14 +166,17 @@ def pointPerspectiveProjection(point,cameraQuat,rotationMatrix):
         Kf[1][0] = rotationMatrix[2,1]
         Kf[2][0] = rotationMatrix[2,2]
 	
-	
-	U_matrixForm = (focal_length*beta_u*np.dot((Sp_minus_Tf).transpose(),If))/np.dot((Sp_minus_Tf).transpose(),Kf)
-	Ufp = U_matrixForm[0][0]
+	numerator = (focal_length*beta_u*np.dot((Sp_minus_Tf).transpose(),If))
+	denominator = np.dot((Sp_minus_Tf).transpose(),Kf)
+		
+	Ufp= numerator/denominator
+	#Ufp = U_matrixForm[0][0]
 	Ufp = Ufp + u_o
 	
-
-	V_matrixForm = (focal_length*beta_v*np.dot((Sp_minus_Tf).transpose(),Jf))/np.dot((Sp_minus_Tf).transpose(),Kf)
-	Vfp = V_matrixForm[0][0]
+	numerator = (focal_length*beta_v*np.dot((Sp_minus_Tf).transpose(),Jf))
+	denominator = np.dot((Sp_minus_Tf).transpose(),Kf)
+	Vfp = numerator/denominator 
+	#Vfp = V_matrixForm[0][0]
         Vfp = Vfp + v_o
 
 
@@ -234,7 +237,7 @@ def pointOrthographicProjection(point,cameraQuat,rotationMatrix):
         Ufp = Ufp + u_o
 
 
-        V_matrixForm = (focal_length*beta_v*np.dot((Sp_minus_Tf).transpose(),Jf))/np.dot((Sp_minus_Tf).transpose(),Kf)
+        V_matrixForm = (focal_length*beta_v*np.dot((Sp_minus_Tf).transpose(),Jf))
         Vfp = V_matrixForm[0][0]
         Vfp = Vfp + v_o
 
@@ -271,55 +274,115 @@ def getProjectionForAllPoints(pts,cameraFrameQuat,rotationMatrices):
 	return projectedModel
 
 print "Projections of all points w.r.t. fram1 : ",getProjectionForAllPoints(pts,camFrameQuaternions,rotationMatrices)
-print "\nProjected Model [0] : ",projectedModel[0][0][0]
+#print "\nProjected Model [0] : ",projectedModel[0][0][0]
+                                                 
 
-def plotSamplePoints(listxy,figName):
-	x1 = []
-	y1 = []
-	x2 = []
-	y2 = []
-	x3 = []
-	y3 = []
-	x4 = []
-	y4 = []
-	
-	for i in range(len(listxy[0])):
-		x1.append(listxy[0][i][0])
-	        y1.append(listxy[0][i][1])	
-	
-	plt.subplot(2,2,1)
-	plt.scatter(x1,y1)
-	plt.title('Frame 1')
-
-#	plt.plot(x1,y1)
-
-	for i in range(len(listxy[1])):
-                x2.append(listxy[1][i][0])
-                y2.append(listxy[1][i][1])    
-	plt.subplot(2,2,2)
-        plt.scatter(x2,y2)
-	plt.title('Frame 2')
-#	plt.plot(x2,y2)
-
-	for i in range(len(listxy[2])):
-                x3.append(listxy[2][i][0])
-                y3.append(listxy[2][i][1])
-        plt.subplot(2,2,3)
-        plt.scatter(x3,y3)
-	plt.title('Frame 3')
-
-	for i in range(len(listxy[3])):
-                x4.append(listxy[3][i][0])
-                y4.append(listxy[3][i][1])
-        plt.subplot(2,2,4)
-        plt.scatter(x4,y4)
-	plt.title('Frame 4')
-	name = figName + '.jpg'
-	plt.savefig(name)                                                         
-	
-	
 projectedModelPerspective = [projectedModel[0],projectedModel[1],projectedModel[2],projectedModel[3]]
 projectedModelOrthogonal = [projectedModel[4],projectedModel[5],projectedModel[6],projectedModel[7]]
-print "\nprojectedModelPerspective[0]",projectedModelOrthogonal[0]
-plotSamplePoints(projectedModelPerspective,'Perspective')
-plotSamplePoints(projectedModelOrthogonal,'Orthogonal')
+#print "\nprojectedModelPerspective[0]",projectedModelOrthogonal[0]
+#plotSamplePoints(projectedModelPerspective,'Perspective')
+
+
+import matplotlib.pyplot as plt1
+
+x5 = []
+y5 = []
+x6 = []
+y6 = []
+x7 = []
+y7 = []
+x8 = []
+y8 = []
+
+## plotting orthographic projection
+for i in range(len(projectedModel[4])):
+        x5.append(projectedModel[4][i][0])
+        y5.append(projectedModel[4][i][1])
+
+plt1.subplot(221)
+print "x5 :\n ",x5
+print "y5 :\n ",y5
+plt1.scatter(x5,y5)
+plt1.title('Frame 1')
+
+#       plt.plot(x1,y1)
+
+for i in range(len(projectedModel[5])):
+        x6.append(projectedModel[5][i][0])
+        y6.append(projectedModel[5][i][1])
+
+plt1.subplot(222)
+plt1.scatter(x6,y6)
+plt1.title('Frame 2')
+#       plt.plot(x2,y2)
+
+for i in range(len(projectedModel[6])):
+        x7.append(projectedModel[6][i][0])
+        y7.append(projectedModel[6][i][1])
+plt1.subplot(223)
+plt1.scatter(x7,y7)
+plt1.title('Frame 3')
+
+for i in range(len(projectedModel[7])):
+        x8.append(projectedModel[7][i][0])
+        y8.append(projectedModel[7][i][1])
+plt1.subplot(224)
+plt1.scatter(x8,y8)
+plt1.title('Frame 4')
+name = 'Orthographic.jpg'
+plt1.savefig(name)
+plt1.show()
+
+
+
+
+x1 = []
+y1 = []
+x2 = []
+y2 = []
+x3 = []
+y3 = []
+x4 = []
+y4 = []
+
+## plotting perspective projection
+
+for i in range(len(projectedModel[0])):
+	x1.append(projectedModel[0][i][0])
+	y1.append(projectedModel[0][i][1])
+
+plt.subplot(2,2,1)
+plt.scatter(x1,y1)
+plt.title('Frame 1')
+
+#       plt.plot(x1,y1)
+
+for i in range(len(projectedModel[1])):
+	x2.append(projectedModel[1][i][0])
+	y2.append(projectedModel[1][i][1])
+
+plt.subplot(2,2,2)
+plt.scatter(x2,y2)
+plt.title('Frame 2')
+#       plt.plot(x2,y2)
+
+for i in range(len(projectedModel[2])):
+	x3.append(projectedModel[2][i][0])
+	y3.append(projectedModel[2][i][1])
+plt.subplot(2,2,3)
+plt.scatter(x3,y3)
+plt.title('Frame 3')
+
+for i in range(len(projectedModel[3])):
+	x4.append(projectedModel[3][i][0])
+	y4.append(projectedModel[3][i][1])
+plt.subplot(2,2,4)
+plt.scatter(x4,y4)
+plt.title('Frame 4')
+name = 'Perspective.jpg'
+plt.savefig(name)
+plt.show()
+#plotSamplePoints(projectedModelOrthogonal,'Orthographic')
+
+
+
